@@ -73,10 +73,8 @@ dialog::backdrop{background:#0009}
     <button onclick="joinParticipant('C')">REGU C</button>
   </div>
   <div class="configbox">
-    <b>Firebase siap dipakai.</b>
-    <p class="small">Pastikan aturan Realtime Database mengizinkan baca/tulis. Untuk uji cepat gunakan aturan:</p>
-    <pre class="small" style="background:#0c1524;padding:10px;border-radius:8px;overflow:auto">{ "rules": { ".read": true, ".write": true } }</pre>
-    <p class="small">⚠️ Aturan di atas hanya untuk pengujian. Untuk produksi, batasi akses.</p>
+    <b>Status Firebase:</b>
+    <p class="small" id="firebaseStatus">Memeriksa konfigurasi...</p>
   </div>
 </section>
 
@@ -156,6 +154,9 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.0/fireba
 import { getDatabase, ref, onValue, set, update, runTransaction, off }
   from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js';
 
+/* ============================================================
+   KONFIGURASI FIREBASE — SUDAH TERISI
+   ============================================================ */
 const firebaseConfig = {
   apiKey: "AIzaSyCr-S_e9SjUYGUKap57KAQBsjXdcccHzUs",
   authDomain: "penilaian-5fff0.firebaseapp.com",
@@ -186,13 +187,25 @@ let unsubscribe = null;
 const $ = id => document.getElementById(id);
 
 function validConfig() {
-  return firebaseConfig.apiKey &&
-         !firebaseConfig.apiKey.includes('GANTI') &&
-         firebaseConfig.databaseURL &&
-         firebaseConfig.databaseURL.includes('firebaseio.com') === false
-         ? !!firebaseConfig.databaseURL
-         : false;
+  return !!(firebaseConfig.apiKey &&
+            !firebaseConfig.apiKey.includes('GANTI') &&
+            firebaseConfig.databaseURL &&
+            firebaseConfig.databaseURL.includes('firebaseio.com') &&
+            !firebaseConfig.databaseURL.includes('GANTI'));
 }
+
+/* Tampilkan status Firebase di halaman join */
+(function initStatus() {
+  const el = $('firebaseStatus');
+  if (!el) return;
+  if (validConfig()) {
+    el.textContent = '✅ Firebase terkonfigurasi. Aplikasi siap sinkron realtime.';
+    el.style.color = '#4ade80';
+  } else {
+    el.textContent = '⚠️ Konfigurasi Firebase tidak valid. Aplikasi berjalan dalam mode demo lokal.';
+    el.style.color = '#fbbf24';
+  }
+})();
 
 function show(view) {
   ['joinView','judgeView','participantView'].forEach(x => $(x).classList.add('hidden'));
@@ -228,7 +241,6 @@ async function connect() {
         if (snap.exists()) {
           const v = snap.val();
           roomData = { ...roomData, ...v };
-          // pastikan bentuk objek konsisten
           roomData.scores = { A:0, B:0, C:0, ...(v.scores || {}) };
           roomData.names  = { A:'REGU A', B:'REGU B', C:'REGU C', ...(v.names || {}) };
           roomData.history = v.history || [];
@@ -243,7 +255,7 @@ async function connect() {
       });
     } catch (e) {
       localMode = true;
-      alert('Firebase gagal terhubung, lanjut mode demo lokal. ' + e.message);
+      console.error(e);
       $('connection').textContent = 'MODE DEMO LOKAL';
       $('connection').style.color = '#fbbf24';
     }
@@ -414,7 +426,6 @@ window.pressBuzz = async (ev) => {
     const winnerRef = ref(db, 'rooms/' + room + '/buzzWinner');
     const result = await runTransaction(winnerRef, current => (current === null ? win : current));
     if (result.committed && result.snapshot.val() === win) {
-      // kita yang menang
       roomData.buzzOpen = false;
       roomData.buzzWinner = win;
       roomData.history = [{ time: stamp(), message: `${roomData.names[win] || 'Regu '+win} buzzer pertama!` }, ...(roomData.history||[])].slice(0,40);
