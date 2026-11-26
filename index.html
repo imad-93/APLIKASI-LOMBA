@@ -30,8 +30,11 @@ button:disabled{opacity:.4;cursor:not-allowed}
 .primary{background:#2563eb}.danger{background:#b91c1c}.success{background:#15803d}.gold{background:#b77908}
 .outline{background:transparent;border:1px solid var(--line);color:var(--text)}
 .icon-btn{background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:10px 14px;border-radius:12px;font-size:18px;line-height:1}
+.close-btn{position:fixed;top:14px;right:14px;z-index:50;width:44px;height:44px;padding:0;border-radius:50%;background:#b91c1c;color:#fff;font-size:22px;font-weight:900;line-height:1;display:none;align-items:center;justify-content:center;box-shadow:0 6px 20px #b91c1c88;border:2px solid #fff3}
+.close-btn.visible{display:flex}
+.close-btn:hover{background:#dc2626}
 .wrap{max-width:1200px;margin:auto;padding:18px}
-.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px;padding-right:56px}
 .brand{font-size:clamp(18px,3vw,26px);font-weight:900;letter-spacing:.04em}
 .tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .tag{font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:99px;padding:6px 10px;background:var(--panel2)}
@@ -76,10 +79,15 @@ dialog::backdrop{background:#0009}
   .participant{margin:2vh auto;padding:14px}
   .participant .score{font-size:min(40vw,190px);margin:5vh 0}
   .buzz{height:38vh}
+  .top{padding-right:56px}
 }
 </style>
 </head>
 <body>
+
+<!-- ✅ TOMBOL CLOSE DI POJOK KANAN ATAS -->
+<button class="close-btn" id="closeBtn" onclick="leave()" title="Keluar / Ganti Perangkat">✕</button>
+
 <main class="wrap">
 <header class="top">
   <div class="brand">🏆 LCC LIVE SCORE <span style="color:#60a5fa">& BUZZER</span></div>
@@ -137,7 +145,6 @@ dialog::backdrop{background:#0009}
     </div>
     <div class="row" style="margin-top:10px">
       <button class="danger" onclick="resetScores()">RESET SELURUH NILAI</button>
-      <button class="outline" onclick="leave()">KELUAR</button>
     </div>
   </div>
 
@@ -169,7 +176,6 @@ dialog::backdrop{background:#0009}
     <span>🔔</span><span>TEKAN BUZZER</span>
   </button>
   <p class="small" id="buzzFeedback">Buzzer belum dibuka oleh juri.</p>
-  <button class="outline" style="margin-top:18px" onclick="leave()">KELUAR / GANTI PERANGKAT</button>
 </section>
 </main>
 
@@ -186,7 +192,7 @@ dialog::backdrop{background:#0009}
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js';
-import { getDatabase, ref, onValue, set, update, runTransaction, off }
+import { getDatabase, ref, onValue, set, update, runTransaction, off, get, child }
   from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js';
 
 /* ============================================================
@@ -219,12 +225,22 @@ let roomData = {
 };
 let roomRef = null;
 let unsubscribe = null;
-let lastWinner = null; // untuk deteksi perubahan buzzWinner (suara)
+let lastWinner = null;
 
 const $ = id => document.getElementById(id);
 
 /* ============================================================
-   THEME (GELAP/TERANG)
+   CLOSE BUTTON (pojok kanan atas)
+   ============================================================ */
+function setCloseVisible(v) {
+  const btn = $('closeBtn');
+  if (!btn) return;
+  btn.classList.toggle('visible', v);
+}
+window.setCloseVisible = setCloseVisible;
+
+/* ============================================================
+   THEME
    ============================================================ */
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
@@ -257,14 +273,9 @@ function toggleFullscreen() {
   }
 }
 window.toggleFullscreen = toggleFullscreen;
-document.addEventListener('fullscreenchange', () => {
-  const btn = $('fsBtn');
-  if (btn) btn.textContent = document.fullscreenElement ? '⛶' : '⛶';
-  if (btn) btn.title = document.fullscreenElement ? 'Keluar fullscreen' : 'Fullscreen';
-});
 
 /* ============================================================
-   SUARA "REGU A/B/C" — Web Speech API
+   SUARA REGU
    ============================================================ */
 let voices = [];
 function loadVoices() {
@@ -279,10 +290,8 @@ if ('speechSynthesis' in window) {
 function speakTeam(t) {
   if (!('speechSynthesis' in window)) return;
   const names = roomData.names || {};
-  // Ucapkan nama regu kalau sudah diubah, kalau tidak "Regu A/B/C"
   const custom = names[t];
   const label = custom && !/^REGU [ABC]$/i.test(custom) ? custom : teamLabel[t];
-
   try {
     window.speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(label);
@@ -290,24 +299,20 @@ function speakTeam(t) {
     u.rate = 0.95;
     u.pitch = 1.05;
     u.volume = 1;
-
-    // pilih suara Indonesia kalau tersedia
     const idVoice = voices.find(v => v.lang && v.lang.toLowerCase().startsWith('id'));
     if (idVoice) u.voice = idVoice;
-
     window.speechSynthesis.speak(u);
-  } catch (e) {
-    console.warn('speak error', e);
-  }
+  } catch (e) { console.warn('speak error', e); }
 }
 window.testSound = t => speakTeam(t);
 
-// unlock speechSynthesis di iOS/Chrome (butuh interaksi user sekali)
 document.addEventListener('click', function unlockSpeech() {
   if ('speechSynthesis' in window) {
-    const u = new SpeechSynthesisUtterance('');
-    u.volume = 0;
-    window.speechSynthesis.speak(u);
+    try {
+      const u = new SpeechSynthesisUtterance('');
+      u.volume = 0;
+      window.speechSynthesis.speak(u);
+    } catch(_){}
   }
   document.removeEventListener('click', unlockSpeech);
 }, { once: true });
@@ -339,6 +344,8 @@ function validConfig() {
 function show(view) {
   ['joinView','judgeView','participantView'].forEach(x => $(x).classList.add('hidden'));
   $(view).classList.remove('hidden');
+  // Tampilkan tombol close hanya saat sudah join
+  setCloseVisible(view !== 'joinView');
 }
 
 function stamp() {
@@ -350,31 +357,52 @@ function addLog(message) {
   render();
 }
 
-async function save() {
+/* Simpan field tertentu ke Firebase — pakai update, bukan set, agar tidak menimpa */
+async function persist(fields) {
   if (localMode || !roomRef) return;
-  try { await set(roomRef, roomData); }
-  catch (e) { console.error('save error', e); }
+  try { await update(roomRef, fields); }
+  catch (e) { console.error('persist error', e); }
 }
 
+/* ============================================================
+   CONNECT — perbaikan utama agar buzzer sinkron
+   ============================================================ */
 async function connect() {
   if (validConfig()) {
     try {
-      app = initializeApp(firebaseConfig);
-      db = getDatabase(app);
+      if (!app) {
+        app = initializeApp(firebaseConfig);
+        db  = getDatabase(app);
+      }
       localMode = false;
       roomRef = ref(db, 'rooms/' + room);
+
       $('connection').textContent = '● REALTIME ONLINE';
       $('connection').style.color = '#4ade80';
+
+      // Hapus listener lama jika ada
+      if (unsubscribe) { try { unsubscribe(); } catch(_){} unsubscribe = null; }
+
+      // Jika juri dan room belum ada, buat dulu
+      if (role === 'judge') {
+        try {
+          const snap = await get(child(ref(db), 'rooms/' + room));
+          if (!snap.exists()) {
+            await set(roomRef, roomData);
+          }
+        } catch(e) { console.warn('init room error', e); }
+      }
 
       unsubscribe = onValue(roomRef, snap => {
         if (snap.exists()) {
           const v = snap.val();
-          roomData = { ...roomData, ...v };
-          roomData.scores = { A:0, B:0, C:0, ...(v.scores || {}) };
-          roomData.names  = { A:'REGU A', B:'REGU B', C:'REGU C', ...(v.names || {}) };
+          roomData.scores  = { A:0, B:0, C:0, ...(v.scores || {}) };
+          roomData.names   = { A:'REGU A', B:'REGU B', C:'REGU C', ...(v.names || {}) };
+          roomData.round   = v.round || 1;
+          roomData.buzzOpen = !!v.buzzOpen;
+          roomData.buzzWinner = v.buzzWinner || null;
           roomData.history = v.history || [];
 
-          // 🔊 deteksi pemenang buzzer baru → bunyikan "Regu X"
           const winner = roomData.buzzWinner;
           if (winner && winner !== lastWinner) {
             lastWinner = winner;
@@ -384,13 +412,18 @@ async function connect() {
           }
 
           render();
-        } else if (role === 'judge') {
-          set(roomRef, roomData).catch(e => console.error(e));
+        } else {
+          // Room tidak ada — hanya juri yang membuat
+          if (role === 'judge') set(roomRef, roomData).catch(e => console.error(e));
+          render();
         }
       }, err => {
         console.error('onValue error', err);
         $('connection').textContent = '● ERROR KONEKSI';
         $('connection').style.color = '#f87171';
+        // tampilkan pesan error ke user
+        alert('Gagal terhubung ke Firebase: ' + (err.message || err) +
+              '\n\nKemungkinan:\n- Rules belum di-Publish\n- databaseURL salah\n- Tidak ada internet');
       });
     } catch (e) {
       localMode = true;
@@ -419,12 +452,13 @@ window.joinParticipant = t => {
   role = 'participant'; team = t; joinBase(); show('participantView'); render();
 };
 window.leave = () => {
-  if (unsubscribe) { unsubscribe(); unsubscribe = null; }
+  if (unsubscribe) { try { unsubscribe(); } catch(_){} unsubscribe = null; }
   if (db && roomRef) { try { off(roomRef); } catch(_){} }
   roomRef = null;
   room = ''; role = ''; team = '';
   lastWinner = null;
   show('joinView');
+  $('roomInput').value = '';
 };
 
 function esc(s) {
@@ -433,6 +467,9 @@ function esc(s) {
   ));
 }
 
+/* ============================================================
+   RENDER
+   ============================================================ */
 function render() {
   if (!room) return;
   const scores = roomData.scores || {};
@@ -481,6 +518,7 @@ function render() {
 
     const open = !!roomData.buzzOpen && !roomData.buzzWinner;
     $('participantStatus').textContent = roomData.buzzOpen ? 'BUZZER TERBUKA' : 'BUZZER TERKUNCI';
+    $('participantStatus').style.color = roomData.buzzOpen ? '#4ade80' : '';
     $('buzzButton').disabled = !open;
     $('buzzButton').classList.toggle('locked', !open);
     $('buzzFeedback').textContent = roomData.buzzWinner
@@ -489,11 +527,14 @@ function render() {
   }
 }
 
+/* ============================================================
+   AKSI JURI
+   ============================================================ */
 window.changeScore = (t, delta) => {
   roomData.scores = roomData.scores || {};
   roomData.scores[t] = Number(roomData.scores[t] || 0) + delta;
   addLog(`${roomData.names[t] || 'Regu '+t}: ${delta>0?'+':''}${delta} → ${roomData.scores[t]}`);
-  save();
+  persist({ scores: roomData.scores, history: roomData.history });
 };
 
 window.manualApply = () => {
@@ -513,14 +554,19 @@ window.saveNames = () => {
     if (v) roomData.names[t] = v;
   });
   addLog('Nama regu diperbarui');
-  save();
+  persist({ names: roomData.names, history: roomData.history });
 };
 
 window.setBuzzOpen = v => {
   roomData.buzzOpen = v;
   if (v) roomData.buzzWinner = null;
+  lastWinner = null;
   addLog(v ? 'Buzzer dibuka' : 'Buzzer dikunci');
-  save();
+  persist({
+    buzzOpen: roomData.buzzOpen,
+    buzzWinner: roomData.buzzWinner,
+    history: roomData.history
+  });
 };
 
 window.resetBuzz = () => {
@@ -528,7 +574,7 @@ window.resetBuzz = () => {
   roomData.buzzWinner = null;
   lastWinner = null;
   addLog('Buzzer/soal direset');
-  save();
+  persist({ buzzOpen: false, buzzWinner: null, history: roomData.history });
 };
 
 window.nextRound = () => {
@@ -537,7 +583,7 @@ window.nextRound = () => {
   roomData.buzzWinner = null;
   lastWinner = null;
   addLog('Masuk babak ' + roomData.round);
-  save();
+  persist({ round: roomData.round, buzzOpen: false, buzzWinner: null, history: roomData.history });
 };
 
 window.resetScores = () => $('confirmReset').showModal();
@@ -549,23 +595,25 @@ window.confirmResetScores = () => {
   roomData.buzzWinner = null;
   lastWinner = null;
   addLog('Seluruh nilai direset');
-  save();
+  persist({ scores: roomData.scores, buzzOpen: false, buzzWinner: null, history: roomData.history });
 };
 
+/* ============================================================
+   PESERTA TEKAN BUZZER
+   ============================================================ */
 window.pressBuzz = async (ev) => {
   if (ev) ev.preventDefault();
   if (!roomData.buzzOpen || roomData.buzzWinner) return;
   const win = team;
 
-  // 🔊 bunyikan "Regu X" langsung di perangkat yang menekan
   speakTeam(win);
-  lastWinner = win;
 
   if (localMode) {
     roomData.buzzWinner = win;
     roomData.buzzOpen = false;
+    lastWinner = win;
     addLog(`${roomData.names[win] || 'Regu '+win} buzzer pertama!`);
-    save();
+    render();
     return;
   }
 
@@ -573,21 +621,22 @@ window.pressBuzz = async (ev) => {
     const winnerRef = ref(db, 'rooms/' + room + '/buzzWinner');
     const result = await runTransaction(winnerRef, current => (current === null ? win : current));
     if (result.committed && result.snapshot.val() === win) {
-      roomData.buzzOpen = false;
-      roomData.buzzWinner = win;
-      roomData.history = [{ time: stamp(), message: `${roomData.names[win] || 'Regu '+win} buzzer pertama!` }, ...(roomData.history||[])].slice(0,40);
+      lastWinner = win;
+      const newHistory = [{ time: stamp(), message: `${roomData.names[win] || 'Regu '+win} buzzer pertama!` }, ...(roomData.history||[])].slice(0,40);
       await update(ref(db, 'rooms/' + room), {
         buzzOpen: false,
-        history: roomData.history
+        buzzWinner: win,
+        history: newHistory
       });
       $('buzzFeedback').textContent = 'BUZZER ANDA TERCATAT!';
     } else {
-      $('buzzFeedback').textContent = 'Buzzer sudah didahului regu lain.';
-      lastWinner = result.snapshot.val() || lastWinner;
+      const w = result.snapshot.val();
+      lastWinner = w;
+      $('buzzFeedback').textContent = 'Buzzer sudah didahului regu lain (' + (roomData.names[w] || w) + ').';
     }
   } catch (e) {
     console.error('pressBuzz error', e);
-    $('buzzFeedback').textContent = 'Gagal mengirim buzzer. Periksa koneksi.';
+    $('buzzFeedback').textContent = 'Gagal mengirim buzzer: ' + (e.message || e);
   }
 };
 </script>
