@@ -1,21 +1,436 @@
 <!DOCTYPE html>
-<html lang="id"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#101827"><title>LCC Live Score & Buzzer</title><style>
-:root{--bg:#0b1220;--panel:#131e30;--panel2:#1b2940;--line:#2b3b55;--text:#f5f7fb;--muted:#9fb0c9;--red:#ef4444;--blue:#3b82f6;--green:#22c55e;--gold:#f59e0b}*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#182841,#080e19 70%);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;min-height:100vh}button,input,select{font:inherit}button{border:0;border-radius:12px;padding:12px 16px;font-weight:750;cursor:pointer;color:white;background:#34445f;transition:.12s}button:active{transform:scale(.97)}button:disabled{opacity:.4;cursor:not-allowed}.primary{background:#2563eb}.danger{background:#b91c1c}.success{background:#15803d}.gold{background:#b77908}.outline{background:transparent;border:1px solid var(--line)}.wrap{max-width:1200px;margin:auto;padding:18px}.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px}.brand{font-size:clamp(18px,3vw,26px);font-weight:900;letter-spacing:.04em}.tag{font-size:12px;color:#b9c9e2;border:1px solid var(--line);border-radius:99px;padding:6px 10px}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.card{background:linear-gradient(160deg,#19263a,#111a29);border:1px solid var(--line);border-radius:20px;padding:16px;box-shadow:0 12px 30px #0003}.team{position:relative;overflow:hidden}.team:before{content:"";position:absolute;inset:0 auto 0 0;width:6px;background:var(--team)}.team h2{margin:2px 0 4px;font-size:clamp(14px,2vw,18px);color:var(--team)}.score{font-size:clamp(54px,9vw,96px);line-height:1;font-weight:950;letter-spacing:-.04em;text-align:center;margin:18px 0 8px}.rank{color:var(--muted);text-align:center;font-size:12px}.teamBtns{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}.teamBtns button{padding:10px 6px}.panel{margin-top:16px}.panel h3{margin:0 0 12px}.controls{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.row>*{flex:1;min-width:100px}.field{width:100%;border-radius:10px;border:1px solid var(--line);background:#0c1524;color:white;padding:12px}.small{font-size:12px;color:var(--muted)}.buzzState{padding:12px;border-radius:12px;background:#0c1524;border:1px solid var(--line);font-weight:800}.log{max-height:220px;overflow:auto;display:flex;flex-direction:column;gap:6px}.logitem{padding:9px 11px;border-radius:9px;background:#0c1524;color:#c9d5e7;font-size:13px}.hidden{display:none!important}.join{max-width:560px;margin:8vh auto}.participant{text-align:center;max-width:760px;margin:5vh auto}.participant .score{font-size:min(32vw,220px);margin:8vh 0 3vh}.buzz{width:100%;height:clamp(170px,35vh,320px);border-radius:30px;background:var(--team);box-shadow:0 12px 35px color-mix(in srgb,var(--team),transparent 60%),inset 0 -12px 0 #0002;font-size:clamp(28px,6vw,54px);letter-spacing:.06em;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:12px;touch-action:manipulation}.buzz.locked{filter:grayscale(.7);opacity:.6}.statusline{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:14px}.pill{border-radius:99px;padding:6px 12px;background:#1e2d44;color:#c7d8f2;font-size:12px}.winner{outline:4px solid #fbbf24;outline-offset:2px}.configbox{padding:14px;border:1px dashed #52647f;border-radius:14px;margin-top:12px}.footer{text-align:center;color:#70829c;padding:24px;font-size:12px}dialog{border:1px solid var(--line);border-radius:18px;background:#142035;color:white;max-width:420px;width:calc(100% - 24px)}dialog::backdrop{background:#0009} @media(max-width:700px){.grid{grid-template-columns:1fr;gap:10px}.team{padding:12px}.score{font-size:64px;margin:12px}.controls{grid-template-columns:repeat(2,1fr)}.wrap{padding:12px}.participant{margin:2vh auto;padding:14px}.participant .score{font-size:min(40vw,190px);margin:5vh 0}.buzz{height:38vh}}
-</style></head><body><main class="wrap"><header class="top"><div class="brand">🏆 LCC LIVE SCORE <span style="color:#60a5fa">& BUZZER</span></div><span id="connection" class="tag">Belum terhubung</span></header><section id="joinView" class="card join"><h2>Masuk Perangkat</h2><p class="small">Masukkan kode ruang dan pilih mode perangkat.</p><input id="roomInput" class="field" placeholder="Kode ruang, misalnya LCC01" maxlength="12"><div class="row" style="margin-top:10px"><button class="primary" onclick="joinAsJudge()">JURI / OPERATOR</button><button onclick="joinParticipant('A')">REGU A</button></div><div class="row" style="margin-top:8px"><button onclick="joinParticipant('B')">REGU B</button><button onclick="joinParticipant('C')">REGU C</button></div><div class="configbox"><b>Konfigurasi Firebase diperlukan untuk sinkronisasi antarperangkat.</b><p class="small">Isi firebaseConfig pada kode dengan konfigurasi Firebase Realtime Database milik Anda. Tanpa konfigurasi, aplikasi berjalan dalam mode demo lokal di perangkat ini.</p></div></section><section id="judgeView" class="hidden"><div class="statusline"><span class="pill" id="roomPill">RUANG —</span><span class="pill" id="roundPill">BABAK —</span><span class="pill" id="buzzPill">BUZZER TERKUNCI</span></div><div class="grid" id="teams"></div><div class="card panel"><h3>🎛️ Kontrol Juri</h3><div class="controls"><button class="success" onclick="setBuzzOpen(true)">BUKA BUZZER</button><button class="danger" onclick="setBuzzOpen(false)">KUNCI BUZZER</button><button class="gold" onclick="resetBuzz()">RESET BUZZER / SOAL</button><button class="outline" onclick="nextRound()">GANTI BABAK</button></div><div class="row" style="margin-top:10px"><input class="field" id="manualTeam" placeholder="Regu A/B/C"><input class="field" id="manualScore" type="number" placeholder="Nilai +/-"><button class="primary" onclick="manualApply()">TERAPKAN</button></div><div class="row" style="margin-top:10px"><input class="field" id="nameA" placeholder="Nama Regu A"><input class="field" id="nameB" placeholder="Nama Regu B"><input class="field" id="nameC" placeholder="Nama Regu C"><button onclick="saveNames()">SIMPAN NAMA</button></div><div class="row" style="margin-top:10px"><button class="danger" onclick="resetScores()">RESET SELURUH NILAI</button><button class="outline" onclick="leave()">KELUAR</button></div></div><div class="card panel"><h3>⚡ Status Buzzer</h3><div id="buzzStatus" class="buzzState">Belum ada regu yang menekan buzzer.</div></div><div class="card panel"><h3>🧾 Riwayat</h3><div id="history" class="log"></div></div></section><section id="participantView" class="hidden participant"><div class="statusline"><span class="pill" id="participantRoom">RUANG —</span><span class="pill" id="participantRound">BABAK —</span><span class="pill" id="participantStatus">BUZZER TERKUNCI</span></div><div id="participantName" style="font-size:clamp(20px,4vw,36px);font-weight:900"></div><div class="score" id="participantScore">0</div><button id="buzzButton" class="buzz locked" onclick="pressBuzz()" disabled><span>🔔</span><span>TEKAN BUZZER</span></button><p class="small" id="buzzFeedback">Buzzer belum dibuka oleh juri.</p><button class="outline" style="margin-top:18px" onclick="leave()">KELUAR / GANTI PERANGKAT</button></section></main><div class="footer">LCC LIVE SCORE · Sistem penilaian dan buzzer realtime</div><dialog id="confirmReset"><h3>Reset nilai seluruh regu?</h3><p>Semua skor akan kembali ke 0. Tindakan ini tidak bisa dibatalkan.</p><div class="row"><button class="danger" onclick="confirmResetScores()">YA, RESET</button><button onclick="document.getElementById('confirmReset').close()">BATAL</button></div></dialog>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#101827">
+<title>LCC Live Score & Buzzer</title>
+<style>
+:root{--bg:#0b1220;--panel:#131e30;--panel2:#1b2940;--line:#2b3b55;--text:#f5f7fb;--muted:#9fb0c9;--red:#ef4444;--blue:#3b82f6;--green:#22c55e;--gold:#f59e0b}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(ellipse at top,#182841,#080e19 70%);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;min-height:100vh}
+button,input,select{font:inherit}
+button{border:0;border-radius:12px;padding:12px 16px;font-weight:750;cursor:pointer;color:white;background:#34445f;transition:.12s}
+button:active{transform:scale(.97)}
+button:disabled{opacity:.4;cursor:not-allowed}
+.primary{background:#2563eb}.danger{background:#b91c1c}.success{background:#15803d}.gold{background:#b77908}.outline{background:transparent;border:1px solid var(--line)}
+.wrap{max-width:1200px;margin:auto;padding:18px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.brand{font-size:clamp(18px,3vw,26px);font-weight:900;letter-spacing:.04em}
+.tag{font-size:12px;color:#b9c9e2;border:1px solid var(--line);border-radius:99px;padding:6px 10px}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.card{background:linear-gradient(160deg,#19263a,#111a29);border:1px solid var(--line);border-radius:20px;padding:16px;box-shadow:0 12px 30px #0003}
+.team{position:relative;overflow:hidden}
+.team:before{content:"";position:absolute;inset:0 auto 0 0;width:6px;background:var(--team)}
+.team h2{margin:2px 0 4px;font-size:clamp(14px,2vw,18px);color:var(--team)}
+.score{font-size:clamp(54px,9vw,96px);line-height:1;font-weight:950;letter-spacing:-.04em;text-align:center;margin:18px 0 8px}
+.rank{color:var(--muted);text-align:center;font-size:12px}
+.teamBtns{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.teamBtns button{padding:10px 6px}
+.panel{margin-top:16px}
+.panel h3{margin:0 0 12px}
+.controls{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.row>*{flex:1;min-width:100px}
+.field{width:100%;border-radius:10px;border:1px solid var(--line);background:#0c1524;color:white;padding:12px}
+.small{font-size:12px;color:var(--muted)}
+.buzzState{padding:12px;border-radius:12px;background:#0c1524;border:1px solid var(--line);font-weight:800}
+.log{max-height:220px;overflow:auto;display:flex;flex-direction:column;gap:6px}
+.logitem{padding:9px 11px;border-radius:9px;background:#0c1524;color:#c9d5e7;font-size:13px}
+.hidden{display:none!important}
+.join{max-width:560px;margin:8vh auto}
+.participant{text-align:center;max-width:760px;margin:5vh auto}
+.participant .score{font-size:min(32vw,220px);margin:8vh 0 3vh}
+.buzz{width:100%;height:clamp(170px,35vh,320px);border-radius:30px;background:var(--team);box-shadow:0 12px 35px color-mix(in srgb,var(--team),transparent 60%),inset 0 -12px 0 #0002;font-size:clamp(28px,6vw,54px);letter-spacing:.06em;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:12px;touch-action:manipulation}
+.buzz.locked{filter:grayscale(.7);opacity:.6}
+.statusline{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.pill{border-radius:99px;padding:6px 12px;background:#1e2d44;color:#c7d8f2;font-size:12px}
+.winner{outline:4px solid #fbbf24;outline-offset:2px}
+.configbox{padding:14px;border:1px dashed #52647f;border-radius:14px;margin-top:12px}
+.footer{text-align:center;color:#70829c;padding:24px;font-size:12px}
+dialog{border:1px solid var(--line);border-radius:18px;background:#142035;color:white;max-width:420px;width:calc(100% - 24px)}
+dialog::backdrop{background:#0009}
+@media(max-width:700px){.grid{grid-template-columns:1fr;gap:10px}.team{padding:12px}.score{font-size:64px;margin:12px}.controls{grid-template-columns:repeat(2,1fr)}.wrap{padding:12px}.participant{margin:2vh auto;padding:14px}.participant .score{font-size:min(40vw,190px);margin:5vh 0}.buzz{height:38vh}}
+</style>
+</head>
+<body>
+<main class="wrap">
+<header class="top">
+  <div class="brand">🏆 LCC LIVE SCORE <span style="color:#60a5fa">& BUZZER</span></div>
+  <span id="connection" class="tag">Belum terhubung</span>
+</header>
+
+<section id="joinView" class="card join">
+  <h2>Masuk Perangkat</h2>
+  <p class="small">Masukkan kode ruang dan pilih mode perangkat.</p>
+  <input id="roomInput" class="field" placeholder="Kode ruang, misalnya LCC01" maxlength="12" autocomplete="off">
+  <div class="row" style="margin-top:10px">
+    <button class="primary" onclick="joinAsJudge()">JURI / OPERATOR</button>
+    <button onclick="joinParticipant('A')">REGU A</button>
+  </div>
+  <div class="row" style="margin-top:8px">
+    <button onclick="joinParticipant('B')">REGU B</button>
+    <button onclick="joinParticipant('C')">REGU C</button>
+  </div>
+  <div class="configbox">
+    <b>Firebase siap dipakai.</b>
+    <p class="small">Pastikan aturan Realtime Database mengizinkan baca/tulis. Untuk uji cepat gunakan aturan:</p>
+    <pre class="small" style="background:#0c1524;padding:10px;border-radius:8px;overflow:auto">{ "rules": { ".read": true, ".write": true } }</pre>
+    <p class="small">⚠️ Aturan di atas hanya untuk pengujian. Untuk produksi, batasi akses.</p>
+  </div>
+</section>
+
+<section id="judgeView" class="hidden">
+  <div class="statusline">
+    <span class="pill" id="roomPill">RUANG —</span>
+    <span class="pill" id="roundPill">BABAK —</span>
+    <span class="pill" id="buzzPill">BUZZER TERKUNCI</span>
+  </div>
+  <div class="grid" id="teams"></div>
+
+  <div class="card panel">
+    <h3>🎛️ Kontrol Juri</h3>
+    <div class="controls">
+      <button class="success" onclick="setBuzzOpen(true)">BUKA BUZZER</button>
+      <button class="danger" onclick="setBuzzOpen(false)">KUNCI BUZZER</button>
+      <button class="gold" onclick="resetBuzz()">RESET BUZZER / SOAL</button>
+      <button class="outline" onclick="nextRound()">GANTI BABAK</button>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <input class="field" id="manualTeam" placeholder="Regu A/B/C">
+      <input class="field" id="manualScore" type="number" placeholder="Nilai +/-">
+      <button class="primary" onclick="manualApply()">TERAPKAN</button>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <input class="field" id="nameA" placeholder="Nama Regu A">
+      <input class="field" id="nameB" placeholder="Nama Regu B">
+      <input class="field" id="nameC" placeholder="Nama Regu C">
+      <button onclick="saveNames()">SIMPAN NAMA</button>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button class="danger" onclick="resetScores()">RESET SELURUH NILAI</button>
+      <button class="outline" onclick="leave()">KELUAR</button>
+    </div>
+  </div>
+
+  <div class="card panel">
+    <h3>⚡ Status Buzzer</h3>
+    <div id="buzzStatus" class="buzzState">Belum ada regu yang menekan buzzer.</div>
+  </div>
+
+  <div class="card panel">
+    <h3>🧾 Riwayat</h3>
+    <div id="history" class="log"></div>
+  </div>
+</section>
+
+<section id="participantView" class="hidden participant">
+  <div class="statusline">
+    <span class="pill" id="participantRoom">RUANG —</span>
+    <span class="pill" id="participantRound">BABAK —</span>
+    <span class="pill" id="participantStatus">BUZZER TERKUNCI</span>
+  </div>
+  <div id="participantName" style="font-size:clamp(20px,4vw,36px);font-weight:900"></div>
+  <div class="score" id="participantScore">0</div>
+  <button id="buzzButton" class="buzz locked" onclick="pressBuzz(event)" disabled>
+    <span>🔔</span><span>TEKAN BUZZER</span>
+  </button>
+  <p class="small" id="buzzFeedback">Buzzer belum dibuka oleh juri.</p>
+  <button class="outline" style="margin-top:18px" onclick="leave()">KELUAR / GANTI PERANGKAT</button>
+</section>
+</main>
+
+<div class="footer">LCC LIVE SCORE · Sistem penilaian dan buzzer realtime</div>
+
+<dialog id="confirmReset">
+  <h3>Reset nilai seluruh regu?</h3>
+  <p>Semua skor akan kembali ke 0. Tindakan ini tidak bisa dibatalkan.</p>
+  <div class="row">
+    <button class="danger" onclick="confirmResetScores()">YA, RESET</button>
+    <button onclick="document.getElementById('confirmReset').close()">BATAL</button>
+  </div>
+</dialog>
+
 <script type="module">
-import {initializeApp} from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js';
-import {getDatabase,ref,onValue,set,update,runTransaction} from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js';
-const firebaseConfig={apiKey:"GANTI_API_KEY",authDomain:"GANTI_PROJECT.firebaseapp.com",databaseURL:"https://GANTI_PROJECT-default-rtdb.firebaseio.com",projectId:"GANTI_PROJECT",appId:"GANTI_APP_ID"};
-const colors={A:'#e53935',B:'#1976d2',C:'#159447'};let app,db,room='',role='',team='',localMode=true,roomData={scores:{A:0,B:0,C:0},names:{A:'REGU A',B:'REGU B',C:'REGU C'},round:1,buzzOpen:false,buzzWinner:null,history:[]};let unsub=null;
-const $=id=>document.getElementById(id);function validConfig(){return firebaseConfig.apiKey!=='GANTI_API_KEY'&&firebaseConfig.projectId!=='GANTI_PROJECT'&&firebaseConfig.databaseURL.includes('firebaseio.com')}
-function show(view){['joinView','judgeView','participantView'].forEach(x=>$(x).classList.add('hidden'));$(view).classList.remove('hidden')}}
-function stamp(){return new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}
-function addLog(message){roomData.history=[{time:stamp(),message},...(roomData.history||[])].slice(0,40);render()}
-async function connect(){if(validConfig()){try{app=initializeApp(firebaseConfig);db=getDatabase(app);localMode=false;onValue(ref(db,'rooms/'+room),snap=>{if(snap.exists()){roomData={...roomData,...snap.val()};render()}else if(role==='judge'){set(ref(db,'rooms/'+room),roomData)}$('connection').textContent='● REALTIME ONLINE';$('connection').style.color='#4ade80';});}catch(e){localMode=true;alert('Firebase gagal terhubung, lanjut mode demo lokal. '+e.message)}}else{$('connection').textContent='MODE DEMO LOKAL';$('connection').style.color='#fbbf24'}render()}
-async function save(){if(localMode)return;await set(ref(db,'rooms/'+room),roomData)}
-function joinBase(){room=$('roomInput').value.trim().toUpperCase()||'LCC01';$('roomPill').textContent='RUANG '+room;$('participantRoom').textContent='RUANG '+room;connect()}
-window.joinAsJudge=()=>{role='judge';joinBase();show('judgeView');render()};window.joinParticipant=t=>{role='participant';team=t;joinBase();show('participantView');render()};window.leave=()=>{if(unsub)unsub();room='';role='';team='';show('joinView')};
-function render(){if(!room)return;const scores=roomData.scores||{};const names=roomData.names||{};const sorted=['A','B','C'].sort((a,b)=>(scores[b]||0)-(scores[a]||0));$('teams').innerHTML=['A','B','C'].map(t=>`<article class="card team ${roomData.buzzWinner===t?'winner':''}" style="--team:${colors[t]}"><h2>${esc(names[t]||'REGU '+t)}</h2><div class="score">${Number(scores[t]||0)}</div><div class="rank">PERINGKAT ${sorted.indexOf(t)+1}</div><div class="teamBtns"><button onclick="changeScore('${t}',1)">+1</button><button onclick="changeScore('${t}',5)">+5</button><button onclick="changeScore('${t}',10)">+10</button><button class="outline" onclick="changeScore('${t}',-1)">−1</button><button class="outline" onclick="changeScore('${t}',-5)">−5</button><button class="outline" onclick="changeScore('${t}',-10)">−10</button></div></article>`).join('');$('roundPill').textContent='BABAK '+(roomData.round||1);$('buzzPill').textContent=roomData.buzzOpen?'BUZZER TERBUKA':'BUZZER TERKUNCI';$('buzzPill').style.color=roomData.buzzOpen?'#4ade80':'';$('buzzStatus').textContent=roomData.buzzWinner?`${names[roomData.buzzWinner]||roomData.buzzWinner} menekan buzzer pertama!`:'Belum ada regu yang menekan buzzer.';$('history').innerHTML=(roomData.history||[]).map(h=>`<div class="logitem">${esc(h.time||'')} · ${esc(h.message||'')}</div>`).join('')||'<div class="small">Belum ada riwayat.</div>';if(role==='participant'){const name=names[team]||'REGU '+team;$('participantName').textContent=name;$('participantName').style.color=colors[team];$('participantScore').textContent=Number(scores[team]||0);$('participantRound').textContent='BABAK '+(roomData.round||1);const open=!!roomData.buzzOpen&&!roomData.buzzWinner;$('participantStatus').textContent=roomData.buzzOpen?'BUZZER TERBUKA':'BUZZER TERKUNCI';$('buzzButton').disabled=!open;$('buzzButton').classList.toggle('locked',!open);$('buzzFeedback').textContent=roomData.buzzWinner?`${names[roomData.buzzWinner]} telah menekan buzzer lebih dulu.`:open?'Buzzer terbuka! Tekan untuk menjawab.':'Buzzer belum dibuka oleh juri.';}}
-function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-window.changeScore=(t,delta)=>{roomData.scores[t]=Number(roomData.scores[t]||0)+delta;addLog(`${roomData.names[t]||'Regu '+t}: ${delta>0?'+':''}${delta} → ${roomData.scores[t]}`);save()};window.manualApply=()=>{let t=$('manualTeam').value.trim().toUpperCase().replace('REGU ','');let v=Number($('manualScore').value);if(!['A','B','C'].includes(t)||!Number.isFinite(v)||!v){alert('Masukkan regu A/B/C dan nilai selain 0.');return}changeScore(t,v);$('manualScore').value=''};window.saveNames=()=>{['A','B','C'].forEach(t=>{let v=$('name'+t).value.trim();if(v)roomData.names[t]=v});addLog('Nama regu diperbarui');save()};window.setBuzzOpen=v=>{roomData.buzzOpen=v;if(v)roomData.buzzWinner=null;addLog(v?'Buzzer dibuka':'Buzzer dikunci');save()};window.resetBuzz=()=>{roomData.buzzOpen=false;roomData.buzzWinner=null;addLog('Buzzer/soal direset');save()};window.nextRound=()=>{roomData.round=Number(roomData.round||1)+1;roomData.buzzOpen=false;roomData.buzzWinner=null;addLog('Masuk babak '+roomData.round);save()};window.resetScores=()=>$('confirmReset').showModal();window.confirmResetScores=()=>{$('confirmReset').close();roomData.scores={A:0,B:0,C:0};roomData.buzzOpen=false;roomData.buzzWinner=null;addLog('Seluruh nilai direset');save()};window.pressBuzz=async()=>{if(!roomData.buzzOpen||roomData.buzzWinner)return;const win=team;if(localMode){roomData.buzzWinner=win;roomData.buzzOpen=false;addLog(`${roomData.names[win]||'Regu '+win} buzzer pertama!`);save();return}const winnerRef=ref(db,'rooms/'+room+'/buzzWinner');const result=await runTransaction(winnerRef,current=>current===null?win:current);if(result.committed){roomData.buzzWinner=win;roomData.buzzOpen=false;addLog(`${roomData.names[win]||'Regu '+win} buzzer pertama!`);update(ref(db,'rooms/'+room),{buzzOpen:false,history:roomData.history});$('buzzFeedback').textContent='BUZZER ANDA TERCATAT!';}else{$('buzzFeedback').textContent='Buzzer sudah didahului regu lain.'}};
-</script></body></html>
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js';
+import { getDatabase, ref, onValue, set, update, runTransaction, off }
+  from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCr-S_e9SjUYGUKap57KAQBsjXdcccHzUs",
+  authDomain: "penilaian-5fff0.firebaseapp.com",
+  databaseURL: "https://penilaian-5fff0-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "penilaian-5fff0",
+  storageBucket: "penilaian-5fff0.firebasestorage.app",
+  messagingSenderId: "672555972978",
+  appId: "1:672555972978:web:4bd3b997a09aa822ff45eb",
+  measurementId: "G-07CTHFKTVV"
+};
+
+const colors = { A:'#e53935', B:'#1976d2', C:'#159447' };
+
+let app, db;
+let room = '', role = '', team = '';
+let localMode = true;
+let roomData = {
+  scores: { A:0, B:0, C:0 },
+  names: { A:'REGU A', B:'REGU B', C:'REGU C' },
+  round: 1,
+  buzzOpen: false,
+  buzzWinner: null,
+  history: []
+};
+let roomRef = null;
+let unsubscribe = null;
+
+const $ = id => document.getElementById(id);
+
+function validConfig() {
+  return firebaseConfig.apiKey &&
+         !firebaseConfig.apiKey.includes('GANTI') &&
+         firebaseConfig.databaseURL &&
+         firebaseConfig.databaseURL.includes('firebaseio.com') === false
+         ? !!firebaseConfig.databaseURL
+         : false;
+}
+
+function show(view) {
+  ['joinView','judgeView','participantView'].forEach(x => $(x).classList.add('hidden'));
+  $(view).classList.remove('hidden');
+}
+
+function stamp() {
+  return new Date().toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+}
+
+function addLog(message) {
+  roomData.history = [{ time: stamp(), message }, ...(roomData.history || [])].slice(0, 40);
+  render();
+}
+
+async function save() {
+  if (localMode || !roomRef) return;
+  try { await set(roomRef, roomData); }
+  catch (e) { console.error('save error', e); }
+}
+
+async function connect() {
+  if (validConfig()) {
+    try {
+      app = initializeApp(firebaseConfig);
+      db = getDatabase(app);
+      localMode = false;
+      roomRef = ref(db, 'rooms/' + room);
+      $('connection').textContent = '● REALTIME ONLINE';
+      $('connection').style.color = '#4ade80';
+
+      unsubscribe = onValue(roomRef, snap => {
+        if (snap.exists()) {
+          const v = snap.val();
+          roomData = { ...roomData, ...v };
+          // pastikan bentuk objek konsisten
+          roomData.scores = { A:0, B:0, C:0, ...(v.scores || {}) };
+          roomData.names  = { A:'REGU A', B:'REGU B', C:'REGU C', ...(v.names || {}) };
+          roomData.history = v.history || [];
+          render();
+        } else if (role === 'judge') {
+          set(roomRef, roomData).catch(e => console.error(e));
+        }
+      }, err => {
+        console.error('onValue error', err);
+        $('connection').textContent = '● ERROR KONEKSI';
+        $('connection').style.color = '#f87171';
+      });
+    } catch (e) {
+      localMode = true;
+      alert('Firebase gagal terhubung, lanjut mode demo lokal. ' + e.message);
+      $('connection').textContent = 'MODE DEMO LOKAL';
+      $('connection').style.color = '#fbbf24';
+    }
+  } else {
+    $('connection').textContent = 'MODE DEMO LOKAL';
+    $('connection').style.color = '#fbbf24';
+  }
+  render();
+}
+
+function joinBase() {
+  room = ($('roomInput').value.trim().toUpperCase() || 'LCC01');
+  $('roomPill').textContent = 'RUANG ' + room;
+  $('participantRoom').textContent = 'RUANG ' + room;
+  connect();
+}
+
+window.joinAsJudge = () => {
+  role = 'judge'; joinBase(); show('judgeView'); render();
+};
+window.joinParticipant = t => {
+  role = 'participant'; team = t; joinBase(); show('participantView'); render();
+};
+window.leave = () => {
+  if (unsubscribe) { unsubscribe(); unsubscribe = null; }
+  if (db && roomRef) { try { off(roomRef); } catch(_){} }
+  roomRef = null;
+  room = ''; role = ''; team = '';
+  show('joinView');
+};
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => (
+    { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]
+  ));
+}
+
+function render() {
+  if (!room) return;
+  const scores = roomData.scores || {};
+  const names  = roomData.names  || {};
+  const sorted = ['A','B','C'].sort((a,b) => (scores[b]||0) - (scores[a]||0));
+
+  if ($('teams')) {
+    $('teams').innerHTML = ['A','B','C'].map(t => `
+      <article class="card team ${roomData.buzzWinner===t?'winner':''}" style="--team:${colors[t]}">
+        <h2>${esc(names[t] || 'REGU '+t)}</h2>
+        <div class="score">${Number(scores[t]||0)}</div>
+        <div class="rank">PERINGKAT ${sorted.indexOf(t)+1}</div>
+        <div class="teamBtns">
+          <button onclick="changeScore('${t}',1)">+1</button>
+          <button onclick="changeScore('${t}',5)">+5</button>
+          <button onclick="changeScore('${t}',10)">+10</button>
+          <button class="outline" onclick="changeScore('${t}',-1)">−1</button>
+          <button class="outline" onclick="changeScore('${t}',-5)">−5</button>
+          <button class="outline" onclick="changeScore('${t}',-10)">−10</button>
+        </div>
+      </article>`).join('');
+  }
+
+  if ($('roundPill')) $('roundPill').textContent = 'BABAK ' + (roomData.round || 1);
+  if ($('buzzPill')) {
+    $('buzzPill').textContent = roomData.buzzOpen ? 'BUZZER TERBUKA' : 'BUZZER TERKUNCI';
+    $('buzzPill').style.color = roomData.buzzOpen ? '#4ade80' : '';
+  }
+  if ($('buzzStatus')) {
+    $('buzzStatus').textContent = roomData.buzzWinner
+      ? `${names[roomData.buzzWinner] || roomData.buzzWinner} menekan buzzer pertama!`
+      : 'Belum ada regu yang menekan buzzer.';
+  }
+  if ($('history')) {
+    $('history').innerHTML = (roomData.history || [])
+      .map(h => `<div class="logitem">${esc(h.time||'')} · ${esc(h.message||'')}</div>`)
+      .join('') || '<div class="small">Belum ada riwayat.</div>';
+  }
+
+  if (role === 'participant') {
+    const name = names[team] || 'REGU ' + team;
+    $('participantName').textContent = name;
+    $('participantName').style.color = colors[team];
+    $('participantScore').textContent = Number(scores[team] || 0);
+    $('participantRound').textContent = 'BABAK ' + (roomData.round || 1);
+
+    const open = !!roomData.buzzOpen && !roomData.buzzWinner;
+    $('participantStatus').textContent = roomData.buzzOpen ? 'BUZZER TERBUKA' : 'BUZZER TERKUNCI';
+    $('buzzButton').disabled = !open;
+    $('buzzButton').classList.toggle('locked', !open);
+    $('buzzFeedback').textContent = roomData.buzzWinner
+      ? `${names[roomData.buzzWinner]} telah menekan buzzer lebih dulu.`
+      : open ? 'Buzzer terbuka! Tekan untuk menjawab.' : 'Buzzer belum dibuka oleh juri.';
+  }
+}
+
+window.changeScore = (t, delta) => {
+  roomData.scores = roomData.scores || {};
+  roomData.scores[t] = Number(roomData.scores[t] || 0) + delta;
+  addLog(`${roomData.names[t] || 'Regu '+t}: ${delta>0?'+':''}${delta} → ${roomData.scores[t]}`);
+  save();
+};
+
+window.manualApply = () => {
+  let t = $('manualTeam').value.trim().toUpperCase().replace('REGU ', '');
+  let v = Number($('manualScore').value);
+  if (!['A','B','C'].includes(t) || !Number.isFinite(v) || !v) {
+    alert('Masukkan regu A/B/C dan nilai selain 0.');
+    return;
+  }
+  changeScore(t, v);
+  $('manualScore').value = '';
+};
+
+window.saveNames = () => {
+  ['A','B','C'].forEach(t => {
+    const v = $('name' + t).value.trim();
+    if (v) roomData.names[t] = v;
+  });
+  addLog('Nama regu diperbarui');
+  save();
+};
+
+window.setBuzzOpen = v => {
+  roomData.buzzOpen = v;
+  if (v) roomData.buzzWinner = null;
+  addLog(v ? 'Buzzer dibuka' : 'Buzzer dikunci');
+  save();
+};
+
+window.resetBuzz = () => {
+  roomData.buzzOpen = false;
+  roomData.buzzWinner = null;
+  addLog('Buzzer/soal direset');
+  save();
+};
+
+window.nextRound = () => {
+  roomData.round = Number(roomData.round || 1) + 1;
+  roomData.buzzOpen = false;
+  roomData.buzzWinner = null;
+  addLog('Masuk babak ' + roomData.round);
+  save();
+};
+
+window.resetScores = () => $('confirmReset').showModal();
+
+window.confirmResetScores = () => {
+  $('confirmReset').close();
+  roomData.scores = { A:0, B:0, C:0 };
+  roomData.buzzOpen = false;
+  roomData.buzzWinner = null;
+  addLog('Seluruh nilai direset');
+  save();
+};
+
+window.pressBuzz = async (ev) => {
+  if (ev) ev.preventDefault();
+  if (!roomData.buzzOpen || roomData.buzzWinner) return;
+  const win = team;
+
+  if (localMode) {
+    roomData.buzzWinner = win;
+    roomData.buzzOpen = false;
+    addLog(`${roomData.names[win] || 'Regu '+win} buzzer pertama!`);
+    save();
+    return;
+  }
+
+  try {
+    const winnerRef = ref(db, 'rooms/' + room + '/buzzWinner');
+    const result = await runTransaction(winnerRef, current => (current === null ? win : current));
+    if (result.committed && result.snapshot.val() === win) {
+      // kita yang menang
+      roomData.buzzOpen = false;
+      roomData.buzzWinner = win;
+      roomData.history = [{ time: stamp(), message: `${roomData.names[win] || 'Regu '+win} buzzer pertama!` }, ...(roomData.history||[])].slice(0,40);
+      await update(ref(db, 'rooms/' + room), {
+        buzzOpen: false,
+        history: roomData.history
+      });
+      $('buzzFeedback').textContent = 'BUZZER ANDA TERCATAT!';
+    } else {
+      $('buzzFeedback').textContent = 'Buzzer sudah didahului regu lain.';
+    }
+  } catch (e) {
+    console.error('pressBuzz error', e);
+    $('buzzFeedback').textContent = 'Gagal mengirim buzzer. Periksa koneksi.';
+  }
+};
+</script>
+</body>
+</html>
