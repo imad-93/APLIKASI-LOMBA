@@ -187,11 +187,12 @@ let unsubscribe = null;
 const $ = id => document.getElementById(id);
 
 function validConfig() {
+  const url = firebaseConfig.databaseURL || '';
   return !!(firebaseConfig.apiKey &&
             !firebaseConfig.apiKey.includes('GANTI') &&
-            firebaseConfig.databaseURL &&
-            firebaseConfig.databaseURL.includes('firebaseio.com') &&
-            !firebaseConfig.databaseURL.includes('GANTI'));
+            url &&
+            !url.includes('GANTI') &&
+            (url.includes('firebaseio.com') || url.includes('firebasedatabase.app')));
 }
 
 /* Tampilkan status Firebase di halaman join */
