@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#101827">
-<title>LCC Live Score & Buzzer</title>
+<title>KOMPAS UAS LIVE SCORE</title>
 <style>
 :root{
   --bg:#0b1220;--panel:#131e30;--panel2:#1b2940;--line:#2b3b55;
@@ -90,7 +90,7 @@ dialog::backdrop{background:#0009}
 
 <main class="wrap">
 <header class="top">
-  <div class="brand">🏆 LCC LIVE SCORE <span style="color:#60a5fa">& BUZZER</span></div>
+  <div class="brand">🏆 KOMPAS UAS <span style="color:#60a5fa">LIVE SCORE</span></div>
   <div class="tools">
     <span id="connection" class="tag">Belum terhubung</span>
     <button class="icon-btn" id="themeBtn" title="Mode gelap/terang" onclick="toggleTheme()">🌙</button>
@@ -120,16 +120,16 @@ dialog::backdrop{background:#0009}
   <div class="statusline">
     <span class="pill" id="roomPill">RUANG —</span>
     <span class="pill" id="roundPill">BABAK —</span>
-    <span class="pill" id="buzzPill">BUZZER TERKUNCI</span>
+    <span class="pill" id="buzzPill">BEL TERKUNCI</span>
   </div>
   <div class="grid" id="teams"></div>
 
   <div class="card panel">
     <h3>🎛️ Kontrol Juri</h3>
     <div class="controls">
-      <button class="success" onclick="setBuzzOpen(true)">BUKA BUZZER</button>
-      <button class="danger" onclick="setBuzzOpen(false)">KUNCI BUZZER</button>
-      <button class="gold" onclick="resetBuzz()">RESET BUZZER / SOAL</button>
+      <button class="success" onclick="setBuzzOpen(true)">BUKA BEL</button>
+      <button class="danger" onclick="setBuzzOpen(false)">KUNCI BEL</button>
+      <button class="gold" onclick="resetBuzz()">RESET BEL / SOAL</button>
       <button class="outline" onclick="nextRound()">GANTI BABAK</button>
     </div>
     <div class="row" style="margin-top:10px">
@@ -149,8 +149,8 @@ dialog::backdrop{background:#0009}
   </div>
 
   <div class="card panel">
-    <h3>⚡ Status Buzzer</h3>
-    <div id="buzzStatus" class="buzzState">Belum ada regu yang menekan buzzer.</div>
+    <h3>⚡ Status BEL</h3>
+    <div id="buzzStatus" class="buzzState">Belum ada regu yang menekan BEL.</div>
     <div class="row" style="margin-top:10px">
       <button class="primary" onclick="testSound('A')">🔊 Tes Suara Regu A</button>
       <button class="primary" onclick="testSound('B')">🔊 Tes Suara Regu B</button>
@@ -168,18 +168,18 @@ dialog::backdrop{background:#0009}
   <div class="statusline">
     <span class="pill" id="participantRoom">RUANG —</span>
     <span class="pill" id="participantRound">BABAK —</span>
-    <span class="pill" id="participantStatus">BUZZER TERKUNCI</span>
+    <span class="pill" id="participantStatus">BEL TERKUNCI</span>
   </div>
   <div id="participantName" style="font-size:clamp(20px,4vw,36px);font-weight:900"></div>
   <div class="score" id="participantScore">0</div>
   <button id="buzzButton" class="buzz locked" onclick="pressBuzz(event)" disabled>
-    <span>🔔</span><span>TEKAN BUZZER</span>
+    <span>🔔</span><span>TEKAN BEL</span>
   </button>
-  <p class="small" id="buzzFeedback">Buzzer belum dibuka oleh juri.</p>
+  <p class="small" id="buzzFeedback">BEL belum dibuka oleh juri.</p>
 </section>
 </main>
 
-<div class="footer">LCC LIVE SCORE · Sistem penilaian dan buzzer realtime</div>
+<div class="footer">BERADAB - BERILMU - BERDAKWAH</div>
 
 <dialog id="confirmReset">
   <h3>Reset nilai seluruh regu?</h3>
@@ -495,13 +495,13 @@ function render() {
 
   if ($('roundPill')) $('roundPill').textContent = 'BABAK ' + (roomData.round || 1);
   if ($('buzzPill')) {
-    $('buzzPill').textContent = roomData.buzzOpen ? 'BUZZER TERBUKA' : 'BUZZER TERKUNCI';
+    $('buzzPill').textContent = roomData.buzzOpen ? 'BEL TERBUKA' : 'BEL TERKUNCI';
     $('buzzPill').style.color = roomData.buzzOpen ? '#4ade80' : '';
   }
   if ($('buzzStatus')) {
     $('buzzStatus').textContent = roomData.buzzWinner
-      ? `${names[roomData.buzzWinner] || roomData.buzzWinner} menekan buzzer pertama!`
-      : 'Belum ada regu yang menekan buzzer.';
+      ? `${names[roomData.buzzWinner] || roomData.buzzWinner} menekan BEL pertama!`
+      : 'Belum ada regu yang menekan BEL.';
   }
   if ($('history')) {
     $('history').innerHTML = (roomData.history || [])
@@ -517,13 +517,13 @@ function render() {
     $('participantRound').textContent = 'BABAK ' + (roomData.round || 1);
 
     const open = !!roomData.buzzOpen && !roomData.buzzWinner;
-    $('participantStatus').textContent = roomData.buzzOpen ? 'BUZZER TERBUKA' : 'BUZZER TERKUNCI';
+    $('participantStatus').textContent = roomData.buzzOpen ? 'BEL TERBUKA' : 'BEL TERKUNCI';
     $('participantStatus').style.color = roomData.buzzOpen ? '#4ade80' : '';
     $('buzzButton').disabled = !open;
     $('buzzButton').classList.toggle('locked', !open);
     $('buzzFeedback').textContent = roomData.buzzWinner
-      ? `${names[roomData.buzzWinner]} telah menekan buzzer lebih dulu.`
-      : open ? 'Buzzer terbuka! Tekan untuk menjawab.' : 'Buzzer belum dibuka oleh juri.';
+      ? `${names[roomData.buzzWinner]} telah menekan BEL lebih dulu.`
+      : open ? 'BEL terbuka! Tekan untuk menjawab.' : 'BEL belum dibuka oleh juri.';
   }
 }
 
@@ -561,7 +561,7 @@ window.setBuzzOpen = v => {
   roomData.buzzOpen = v;
   if (v) roomData.buzzWinner = null;
   lastWinner = null;
-  addLog(v ? 'Buzzer dibuka' : 'Buzzer dikunci');
+  addLog(v ? 'BEL dibuka' : 'BEL dikunci');
   persist({
     buzzOpen: roomData.buzzOpen,
     buzzWinner: roomData.buzzWinner,
@@ -573,7 +573,7 @@ window.resetBuzz = () => {
   roomData.buzzOpen = false;
   roomData.buzzWinner = null;
   lastWinner = null;
-  addLog('Buzzer/soal direset');
+  addLog('BEL/soal direset');
   persist({ buzzOpen: false, buzzWinner: null, history: roomData.history });
 };
 
@@ -612,7 +612,7 @@ window.pressBuzz = async (ev) => {
     roomData.buzzWinner = win;
     roomData.buzzOpen = false;
     lastWinner = win;
-    addLog(`${roomData.names[win] || 'Regu '+win} buzzer pertama!`);
+    addLog(`${roomData.names[win] || 'Regu '+win} BEL pertama!`);
     render();
     return;
   }
@@ -622,21 +622,21 @@ window.pressBuzz = async (ev) => {
     const result = await runTransaction(winnerRef, current => (current === null ? win : current));
     if (result.committed && result.snapshot.val() === win) {
       lastWinner = win;
-      const newHistory = [{ time: stamp(), message: `${roomData.names[win] || 'Regu '+win} buzzer pertama!` }, ...(roomData.history||[])].slice(0,40);
+      const newHistory = [{ time: stamp(), message: `${roomData.names[win] || 'Regu '+win} BEL pertama!` }, ...(roomData.history||[])].slice(0,40);
       await update(ref(db, 'rooms/' + room), {
         buzzOpen: false,
         buzzWinner: win,
         history: newHistory
       });
-      $('buzzFeedback').textContent = 'BUZZER ANDA TERCATAT!';
+      $('buzzFeedback').textContent = 'BEL ANDA TERCATAT!';
     } else {
       const w = result.snapshot.val();
       lastWinner = w;
-      $('buzzFeedback').textContent = 'Buzzer sudah didahului regu lain (' + (roomData.names[w] || w) + ').';
+      $('buzzFeedback').textContent = 'BEL sudah didahului regu lain (' + (roomData.names[w] || w) + ').';
     }
   } catch (e) {
     console.error('pressBuzz error', e);
-    $('buzzFeedback').textContent = 'Gagal mengirim buzzer: ' + (e.message || e);
+    $('buzzFeedback').textContent = 'Gagal mengirim BEL: ' + (e.message || e);
   }
 };
 </script>
